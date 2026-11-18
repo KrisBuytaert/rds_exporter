@@ -6,7 +6,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - ci/package-test
   workflow_dispatch:
 
 permissions:
@@ -45,3 +45,17 @@ jobs:
           path: |
             build/*.deb
             build/*.rpm
+
+      - name: Save images
+        run: |
+          mkdir -p ctx/linux/amd64
+          cp build/rds_exporter_linux_amd64_v1/rds_exporter ctx/linux/amd64/
+          docker buildx build --load --platform linux/amd64 -f .scripts/Dockerfile -t rds_exporter:test ctx
+          docker run --rm rds_exporter:test --version
+          docker save -o rds_exporter-image-amd64.tar rds_exporter:test
+
+      - name: Upload images
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: images
+          path: rds_exporter-image-amd64.tar
